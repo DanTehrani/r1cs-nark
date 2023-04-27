@@ -56,8 +56,6 @@ where
     pub fn commit(&self, a: &Vec<C::ScalarExt>, blinder: &C::ScalarExt) -> C {
         assert_eq!(self.G.len(), a.len());
 
-        let mut com = self.h * blinder;
-
         let pairs = self
             .G
             .iter()
@@ -65,7 +63,10 @@ where
             .map(|(i, g)| (a[i], (*g).into()))
             .collect::<Vec<(C::ScalarExt, C::Curve)>>();
 
-        let com = multiexp(&pairs);
+        let mut com: C::Curve = C::identity().into();
+        com += multiexp(&pairs);
+        com += self.h * blinder;
+
         com.into()
     }
 }

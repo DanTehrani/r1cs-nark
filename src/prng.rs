@@ -4,6 +4,7 @@ use poseidon_transcript::sponge::{PoseidonSponge, SpongeCurve};
 use rand_core::{OsRng, RngCore};
 use zeroize::DefaultIsZeroes;
 
+// Pseudo-random number generator
 pub struct PRNG<C>
 where
     C: CurveAffineExt,

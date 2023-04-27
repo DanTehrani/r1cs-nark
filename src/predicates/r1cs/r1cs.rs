@@ -107,11 +107,10 @@ where
         }
     }
 
-    fn is_sat(&self, witness: &Vec<C::ScalarExt>, public_input: &Vec<C::ScalarExt>) -> bool {
+    pub fn is_sat(&self, witness: &Vec<C::ScalarExt>, public_input: &Vec<C::ScalarExt>) -> bool {
         let mut z = Vec::with_capacity(witness.len() + public_input.len() + 1);
         z.extend(witness);
         z.extend(public_input);
-        z.push(C::ScalarExt::one());
 
         let Az = self.A.mul_vector(self.num_cons, &z);
         let Bz = self.B.mul_vector(self.num_cons, &z);
