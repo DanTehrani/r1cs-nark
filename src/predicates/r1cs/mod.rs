@@ -3,7 +3,7 @@ mod prover;
 mod r1cs;
 mod verifier;
 
-pub use prover::Prover;
+pub use prover::R1CSNIZKProver;
 pub use r1cs::R1CS;
 pub use verifier::Verifier;
 
@@ -18,14 +18,14 @@ where
     C::ScalarExt: PrimeField<Repr = [u8; 32]>,
     C::ScalarExt: DefaultIsZeroes,
 {
-    C_A: C,
-    C_B: C,
-    C_C: C,
-    C_A_prime: C,
-    C_B_prime: C,
-    C_C_prime: C,
-    C_1: C,
-    C_2: C,
+    pub C_A: C,
+    pub C_B: C,
+    pub C_C: C,
+    pub C_A_prime: C,
+    pub C_B_prime: C,
+    pub C_C_prime: C,
+    pub C_1: C,
+    pub C_2: C,
 }
 
 pub struct Pi2<C>
@@ -35,20 +35,21 @@ where
     C::ScalarExt: PrimeField<Repr = [u8; 32]>,
     C::ScalarExt: DefaultIsZeroes,
 {
-    s: Vec<C::ScalarExt>,
-    sigma_A: C::ScalarExt,
-    sigma_B: C::ScalarExt,
-    sigma_C: C::ScalarExt,
-    sigma_O: C::ScalarExt,
+    pub s: Vec<C::ScalarExt>,
+    pub sigma_A: C::ScalarExt,
+    pub sigma_B: C::ScalarExt,
+    pub sigma_C: C::ScalarExt,
+    pub sigma_O: C::ScalarExt,
 }
 
-pub struct Proof<C>
+pub struct R1CSNIZKProof<C>
 where
     C: CurveAffineExt,
     C::ScalarExt: PrimeFieldBits,
     C::ScalarExt: PrimeField<Repr = [u8; 32]>,
     C::ScalarExt: DefaultIsZeroes,
 {
+    pub public_input: Vec<C::ScalarExt>,
     pub pi_1: Pi1<C>,
     pub pi_2: Pi2<C>,
 }
@@ -57,24 +58,26 @@ where
 mod tests {
     use super::*;
     use crate::commitment::MultiCommitGens;
-    use crate::r1cs::{Prover, Verifier};
+    use crate::r1cs::{R1CSNIZKProver, Verifier};
     use halo2curves::secq256k1::Secq256k1Affine;
     use poseidon_transcript::sponge::SpongeCurve;
     use poseidon_transcript::transcript::PoseidonTranscript;
 
     #[test]
     pub fn test_r1cs_nizk() {
-        let num_cons = 10;
-        let num_vars = 10;
-        let num_input = 5;
+        let num_cons = 8000;
+        let num_vars = 8000;
+        let num_input = 10;
 
         type C = Secq256k1Affine;
 
         let prover_transcript = PoseidonTranscript::new(b"test-r1cs-nizk", SpongeCurve::K256);
         let r1cs = R1CS::<C>::produce_synthetic_r1cs(num_cons, num_vars, num_input);
 
+        assert!(r1cs.is_sat(&r1cs.witness, &r1cs.public_input));
+
         let gens = MultiCommitGens::<C>::new(num_cons, b"r1cs-nark");
-        let mut prover = Prover::new(r1cs.clone(), prover_transcript, gens.clone());
+        let mut prover = R1CSNIZKProver::new(r1cs.clone(), prover_transcript, gens.clone());
 
         let proof = prover.prove(&r1cs.witness, &r1cs.public_input);
 

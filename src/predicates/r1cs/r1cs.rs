@@ -1,5 +1,6 @@
 use crate::CurveAffineExt;
 use ff::{Field, PrimeField, PrimeFieldBits};
+use halo2curves::FieldExt;
 use zeroize::DefaultIsZeroes;
 
 use crate::utils::hadamard_prod;
@@ -56,8 +57,8 @@ where
 {
     pub fn produce_synthetic_r1cs(num_cons: usize, num_vars: usize, num_input: usize) -> Self {
         //        assert_eq!(num_cons, num_vars);
-        let mut witness = Vec::with_capacity(num_vars);
         let mut public_input = Vec::with_capacity(num_input);
+        let mut witness = Vec::with_capacity(num_vars);
 
         for i in 0..num_input {
             public_input.push(C::ScalarExt::from((i + 1) as u64));
@@ -67,12 +68,7 @@ where
             witness.push(C::ScalarExt::from((i + 1) as u64));
         }
 
-        let z: Vec<C::ScalarExt> = vec![
-            witness.clone(),
-            public_input.clone(),
-            vec![C::ScalarExt::one()],
-        ]
-        .concat();
+        let z: Vec<C::ScalarExt> = vec![public_input.clone(), witness.clone()].concat();
 
         let mut A: Vec<(usize, usize, C::ScalarExt)> = vec![];
         let mut B: Vec<(usize, usize, C::ScalarExt)> = vec![];
@@ -87,7 +83,6 @@ where
             // add the value 1 at the (i % num_vars)th column of A, B.
             // Compute the corresponding C_column value so that A_i * B_i = C_i
             // we apply multiplication since the Hadamard product is computed for Az ・ Bz,
-            let one = C::ScalarExt::one();
 
             // We only _enable_ a single variable in each constraint.
             A.push((i, A_col, C::ScalarExt::one()));
@@ -109,8 +104,8 @@ where
 
     pub fn is_sat(&self, witness: &Vec<C::ScalarExt>, public_input: &Vec<C::ScalarExt>) -> bool {
         let mut z = Vec::with_capacity(witness.len() + public_input.len() + 1);
-        z.extend(witness);
         z.extend(public_input);
+        z.extend(witness);
 
         let Az = self.A.mul_vector(self.num_cons, &z);
         let Bz = self.B.mul_vector(self.num_cons, &z);

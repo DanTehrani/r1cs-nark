@@ -1,7 +1,8 @@
 use super::R1CS;
 use crate::CurveAffineExt;
-use crate::{r1cs::Proof, utils::hadamard_prod, MultiCommitGens};
+use crate::{r1cs::R1CSNIZKProof, utils::hadamard_prod, MultiCommitGens};
 use ff::{PrimeField, PrimeFieldBits};
+use halo2curves::group::Curve;
 use halo2curves::FieldExt;
 pub use poseidon_transcript::transcript::PoseidonTranscript;
 use zeroize::DefaultIsZeroes;
@@ -39,7 +40,7 @@ where
         }
     }
 
-    pub fn verify(&mut self, proof: &Proof<C>, public_input: &Vec<C::ScalarExt>) {
+    pub fn verify(&mut self, proof: &R1CSNIZKProof<C>, public_input: &Vec<C::ScalarExt>) {
         // Verify following the steps described in Section 8.1 of
 
         let num_cons = self.r1cs.num_cons;
@@ -71,6 +72,8 @@ where
         s_with_pub_input.extend_from_slice(&public_input);
         s_with_pub_input.extend_from_slice(&pi_2.s);
 
+        assert_eq!(s_with_pub_input.len(), num_vars + public_input.len());
+
         let s_A = self.r1cs.A.mul_vector(num_cons, &s_with_pub_input);
         let s_B = self.r1cs.B.mul_vector(num_cons, &s_with_pub_input);
         let s_C = self.r1cs.C.mul_vector(num_cons, &s_with_pub_input);
@@ -92,10 +95,16 @@ where
             .commit(&hadamard_prod::<C>(&s_A, &s_B), &pi_2.sigma_O)
             .into();
 
+        println!("comm_s_A_s_B: {:?}", comm_s_A_s_B.to_affine());
+
         let C_C: C::Curve = pi_1.C_C.into();
         let C_1_gamma: C::Curve = (pi_1.C_1 * gamma).into();
         let C_2_gamma_squared: C::Curve = (pi_1.C_2 * gamma * gamma).into();
 
-        assert_eq!(comm_s_A_s_B, C_C + C_1_gamma + C_2_gamma_squared,);
+        let lhs = C_C + C_1_gamma + C_2_gamma_squared;
+
+        println!("lhs: {:?}", lhs.to_affine());
+
+        assert_eq!(comm_s_A_s_B, C_C + C_1_gamma + C_2_gamma_squared);
     }
 }

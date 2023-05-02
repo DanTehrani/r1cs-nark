@@ -1,6 +1,6 @@
 use super::r1cs::R1CS;
 use crate::commitment::MultiCommitGens;
-use crate::r1cs::{Pi1, Pi2, Proof};
+use crate::r1cs::{Pi1, Pi2, R1CSNIZKProof};
 use crate::utils::hadamard_prod;
 use crate::CurveAffineExt;
 use crate::PRNG;
@@ -8,7 +8,7 @@ use ff::{Field, PrimeField, PrimeFieldBits};
 use poseidon_transcript::transcript::PoseidonTranscript;
 use zeroize::DefaultIsZeroes;
 
-pub struct Prover<C>
+pub struct R1CSNIZKProver<C>
 where
     C: CurveAffineExt,
     C::ScalarExt: PrimeFieldBits,
@@ -21,7 +21,7 @@ where
     pub comm_gens: MultiCommitGens<C>,
 }
 
-impl<C> Prover<C>
+impl<C> R1CSNIZKProver<C>
 where
     C: CurveAffineExt,
     C::ScalarExt: PrimeFieldBits,
@@ -45,18 +45,20 @@ where
 
     pub fn prove(
         &mut self,
-        witness: &Vec<C::ScalarExt>,
+        witness: &[C::ScalarExt],
         public_input: &Vec<C::ScalarExt>,
-    ) -> Proof<C> {
+    ) -> R1CSNIZKProof<C> {
         let num_cons = self.r1cs.num_cons;
         let num_vars = self.r1cs.num_vars;
+
+        assert_eq!(witness.len(), num_vars);
 
         // Prove following the steps described in Section 8.1 of
 
         // Step 1
 
         let mut z = Vec::with_capacity(witness.len() + public_input.len());
-        z.extend(public_input);
+        z.extend(public_input.clone());
         z.extend(witness);
 
         // Step 2
@@ -140,7 +142,7 @@ where
         let s = witness
             .iter()
             .zip(r.iter())
-            .map(|(w_i, r_i)| *w_i + *r_i * gamma)
+            .map(|(w_i, r_i)| *w_i + (*r_i * gamma))
             .collect::<Vec<C::ScalarExt>>();
 
         assert_eq!(s.len(), witness.len());
@@ -167,6 +169,10 @@ where
 
         // Step 12
 
-        Proof { pi_1, pi_2 }
+        R1CSNIZKProof {
+            public_input: public_input.to_vec(),
+            pi_1,
+            pi_2,
+        }
     }
 }
