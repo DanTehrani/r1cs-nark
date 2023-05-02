@@ -27,16 +27,17 @@ where
     C: CurveAffineExt,
     C::ScalarExt: PrimeFieldBits,
     C::ScalarExt: PrimeField<Repr = [u8; 32]>,
+    C::Base: PrimeField<Repr = [u8; 32]>,
     C::ScalarExt: DefaultIsZeroes,
 {
-    fn new(gens: MultiCommitGens<C>) -> Self {
+    pub fn new(gens: MultiCommitGens<C>) -> Self {
         Self {
             gens,
             prng: PRNG::new(),
         }
     }
 
-    pub fn prove(&mut self, a: Vec<C::ScalarExt>, b: Vec<C::ScalarExt>) -> HadamardProof<C> {
+    pub fn prove(&mut self, a: &[C::ScalarExt], b: &[C::ScalarExt]) -> HadamardProof<C> {
         let c = hadamard_prod::<C>(&a, &b);
 
         let w = self.prng.squeeze(3);
@@ -82,7 +83,7 @@ mod tests {
             b.push(<C as CurveAffine>::ScalarExt::from_u128((n - i) as u128));
         }
 
-        let proof = hadamard_prover.prove(a.clone(), b.clone());
+        let proof = hadamard_prover.prove(&a, &b);
 
         assert_eq!(gens.commit(&a, &proof.w1), proof.c1);
         assert_eq!(gens.commit(&b, &proof.w2), proof.c2);

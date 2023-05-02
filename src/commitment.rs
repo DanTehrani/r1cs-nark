@@ -33,11 +33,12 @@ where
         let mut reader = shake.xof_result();
         let mut gens: Vec<C> = Vec::new();
         let mut uniform_bytes = [0u8; 128];
-        for _ in 0..n + 1 {
+        for i in 0..n + 1 {
             reader.read_exact(&mut uniform_bytes).unwrap();
             // TODO: Curve point from random bytes
             // Unsafe!
-            gens.push(C::generator());
+            //            gens.push((C::generator() * C::ScalarExt::from(i as u64)).into());
+            gens.push((C::generator() * C::ScalarExt::from(i as u64)).into());
         }
 
         MultiCommitGens {
@@ -53,7 +54,7 @@ where
         }
     }
 
-    pub fn commit(&self, a: &Vec<C::ScalarExt>, blinder: &C::ScalarExt) -> C {
+    pub fn commit(&self, a: &[C::ScalarExt], blinder: &C::ScalarExt) -> C {
         assert_eq!(self.G.len(), a.len());
 
         let pairs = self

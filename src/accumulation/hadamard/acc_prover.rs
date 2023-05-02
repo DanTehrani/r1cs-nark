@@ -1,48 +1,11 @@
+use crate::accumulation::hadamard::{
+    HadamardAccProof, HadamardAccumulator, HadamardInstance, HadamardWitness,
+};
 use crate::{utils::hadamard_prod, CurveAffineExt, MultiCommitGens, PRNG};
 use ff::{Field, PrimeField, PrimeFieldBits};
 use halo2curves::FieldExt;
-use poseidon_transcript::sponge::PoseidonSponge;
+use poseidon_transcript::transcript::PoseidonTranscript;
 use zeroize::DefaultIsZeroes;
-
-pub struct HadamardInstance<C>(C, C, C)
-where
-    C: CurveAffineExt,
-    C::ScalarExt: PrimeFieldBits,
-    C::ScalarExt: PrimeField<Repr = [u8; 32]>,
-    C::ScalarExt: DefaultIsZeroes;
-
-#[derive(Clone)]
-pub struct HadamardWitness<C>
-where
-    C: CurveAffineExt,
-    C::ScalarExt: PrimeFieldBits,
-    C::ScalarExt: PrimeField<Repr = [u8; 32]>,
-    C::ScalarExt: DefaultIsZeroes,
-{
-    pub a_vec: Vec<C::ScalarExt>,
-    pub b_vec: Vec<C::ScalarExt>,
-    pub w1: C::ScalarExt,
-    pub w2: C::ScalarExt,
-    pub w3: C::ScalarExt,
-}
-
-pub struct HadamardAccumulator<C>
-where
-    C: CurveAffineExt,
-    C::ScalarExt: PrimeFieldBits,
-    C::ScalarExt: PrimeField<Repr = [u8; 32]>,
-    C::ScalarExt: DefaultIsZeroes,
-{
-    pub qx: HadamardInstance<C>,
-    pub qw: HadamardWitness<C>,
-}
-
-pub struct HadamardAccProof<C>(Vec<C>)
-where
-    C: CurveAffineExt,
-    C::ScalarExt: PrimeFieldBits,
-    C::ScalarExt: PrimeField<Repr = [u8; 32]>,
-    C::ScalarExt: DefaultIsZeroes;
 
 pub struct HadamardAccProver<C>
 where
@@ -52,7 +15,7 @@ where
     C::ScalarExt: DefaultIsZeroes,
 {
     gens: MultiCommitGens<C>,
-    sponge: PoseidonSponge<C::ScalarExt>,
+    transcript: PoseidonTranscript<C>,
     prng: PRNG<C>,
 }
 
@@ -61,27 +24,33 @@ where
     C: CurveAffineExt,
     C::ScalarExt: PrimeFieldBits,
     C::ScalarExt: PrimeField<Repr = [u8; 32]>,
+    C::Base: PrimeField<Repr = [u8; 32]>,
     C::ScalarExt: DefaultIsZeroes,
 {
-    pub fn new(gens: MultiCommitGens<C>, sponge: PoseidonSponge<C::ScalarExt>) -> Self {
+    pub fn new(gens: MultiCommitGens<C>, transcript: PoseidonTranscript<C>) -> Self {
         Self {
             gens,
-            sponge,
+            transcript,
             prng: PRNG::new(),
         }
     }
 
     pub fn prove_acc(
         &mut self,
-        qx: Vec<HadamardInstance<C>>,
-        qw: Vec<HadamardWitness<C>>,
+        qx: &Vec<HadamardInstance<C>>,
+        qw: &Vec<HadamardWitness<C>>,
     ) -> (HadamardAccumulator<C>, HadamardAccProof<C>) {
         let n = qx.len();
         let l = qw[0].a_vec.len();
 
-        // TODO: Absorb the accumulator instances
+        // Absorb the accumulator instances
+        for acc_inst in qx {
+            self.transcript.append_point(&acc_inst.0);
+            self.transcript.append_point(&acc_inst.1);
+            self.transcript.append_point(&acc_inst.2);
+        }
 
-        let mu = self.sponge.squeeze(1)[0];
+        let mu = self.transcript.squeeze(1)[0];
         let mut mu_powers = vec![];
         for i in 0..n {
             mu_powers.push(mu.pow(&[i as u64, 0, 0, 0]));
@@ -97,28 +66,15 @@ where
             }
             b_coeffs.reverse();
 
-            /*
-            let a_poly = DensePolynomial::from_coefficients_vec(a_coeffs);
-            let b_poly = DensePolynomial::from_coefficients_vec(b_coeffs);
-
-            let product_poly = a_poly.naive_mul(&b_poly);
-
-
-            let mut product_coeffs = product_poly.coeffs;
-             */
-            // TODO: Implement polynomial multiplication
-            let mut product_coeffs = a_coeffs;
-
-            if product_coeffs.len() < 2 * n - 1 {
-                product_coeffs.resize_with(2 * n - 1, || C::ScalarExt::zero());
+            let mut product_coeffs = vec![C::ScalarExt::zero(); 2 * n - 1];
+            for (i, a_i) in a_coeffs.iter().enumerate() {
+                for (j, b_i) in b_coeffs.iter().enumerate() {
+                    product_coeffs[i + j] = *a_i * *b_i;
+                }
             }
 
             for i in 0..(2 * n - 1) {
                 t_vecs[i].push(product_coeffs[i].clone());
-                // t_vecs[i]: push the i'th degree coefficient of the product polynomial to the i'th t_vec
-                // each t_vec in t_vecs will be full with the coefficients of the product polynomial
-                // the first product polynomial will be the degree-0 coefficient of the t_vec polynomials
-                // the n'th product polynomial will be the degree-n coefficient of the t_vec polynomials
             }
         }
 
@@ -139,7 +95,7 @@ where
             }
         }
 
-        let nu = self.sponge.squeeze(1)[0];
+        let nu = self.transcript.squeeze(1)[0];
 
         let mut nu_powers = vec![];
         for i in 0..qx.len() {

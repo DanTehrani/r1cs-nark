@@ -2,7 +2,7 @@ use crate::CurveAffineExt;
 use ff::{Field, PrimeField, PrimeFieldBits};
 use zeroize::DefaultIsZeroes;
 
-pub fn hadamard_prod<C>(a: &Vec<C::ScalarExt>, b: &Vec<C::ScalarExt>) -> Vec<C::ScalarExt>
+pub fn hadamard_prod<C>(a: &[C::ScalarExt], b: &[C::ScalarExt]) -> Vec<C::ScalarExt>
 where
     C: CurveAffineExt,
     C::ScalarExt: PrimeFieldBits,
