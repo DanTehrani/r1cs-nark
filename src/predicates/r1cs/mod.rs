@@ -3,7 +3,7 @@ mod prover;
 mod r1cs;
 mod verifier;
 
-pub use prover::R1CSNIZKProver;
+pub use prover::R1CSNARKProver;
 pub use r1cs::R1CS;
 pub use verifier::Verifier;
 
@@ -42,7 +42,7 @@ where
     pub sigma_O: C::ScalarExt,
 }
 
-pub struct R1CSNIZKProof<C>
+pub struct R1CSNARKProof<C>
 where
     C: CurveAffineExt,
     C::ScalarExt: PrimeFieldBits,
@@ -58,7 +58,7 @@ where
 mod tests {
     use super::*;
     use crate::commitment::MultiCommitGens;
-    use crate::r1cs::{R1CSNIZKProver, Verifier};
+    use crate::r1cs::{R1CSNARKProver, Verifier};
     use halo2curves::secq256k1::Secq256k1Affine;
     use poseidon_transcript::sponge::SpongeCurve;
     use poseidon_transcript::transcript::PoseidonTranscript;
@@ -77,7 +77,7 @@ mod tests {
         assert!(r1cs.is_sat(&r1cs.witness, &r1cs.public_input));
 
         let gens = MultiCommitGens::<C>::new(num_cons, b"r1cs-nark");
-        let mut prover = R1CSNIZKProver::new(r1cs.clone(), prover_transcript, gens.clone());
+        let mut prover = R1CSNARKProver::new(r1cs.clone(), prover_transcript, gens.clone());
 
         let proof = prover.prove(&r1cs.witness, &r1cs.public_input);
 

@@ -2,7 +2,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use halo2curves::secq256k1::Secq256k1Affine;
 use poseidon_transcript::sponge::SpongeCurve;
 use poseidon_transcript::transcript::PoseidonTranscript;
-use r1cs_nark::r1cs::{Prover, R1CS};
+use r1cs_nark::r1cs::{R1CSNARKProver, R1CS};
 use r1cs_nark::MultiCommitGens;
 
 fn criterion_benchmark(c: &mut Criterion) {
@@ -18,7 +18,7 @@ fn criterion_benchmark(c: &mut Criterion) {
         let r1cs = R1CS::produce_synthetic_r1cs(num_cons, num_vars, num_input);
         let gens = MultiCommitGens::new(num_cons, b"r1cs-nark");
 
-        let mut prover = Prover::new(r1cs.clone(), prover_transcript, gens);
+        let mut prover = R1CSNARKProver::new(r1cs.clone(), prover_transcript, gens);
 
         let witness = &r1cs.witness;
         let public_input = &r1cs.public_input;

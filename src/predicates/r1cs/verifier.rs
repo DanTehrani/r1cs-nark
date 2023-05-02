@@ -1,6 +1,6 @@
 use super::R1CS;
 use crate::CurveAffineExt;
-use crate::{r1cs::R1CSNIZKProof, utils::hadamard_prod, MultiCommitGens};
+use crate::{r1cs::R1CSNARKProof, utils::hadamard_prod, MultiCommitGens};
 use ff::{PrimeField, PrimeFieldBits};
 use halo2curves::group::Curve;
 use halo2curves::FieldExt;
@@ -40,7 +40,7 @@ where
         }
     }
 
-    pub fn verify(&mut self, proof: &R1CSNIZKProof<C>, public_input: &Vec<C::ScalarExt>) {
+    pub fn verify(&mut self, proof: &R1CSNARKProof<C>, public_input: &Vec<C::ScalarExt>) {
         // Verify following the steps described in Section 8.1 of
 
         let num_cons = self.r1cs.num_cons;

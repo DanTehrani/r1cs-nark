@@ -1,6 +1,6 @@
 use super::r1cs::R1CS;
 use crate::commitment::MultiCommitGens;
-use crate::r1cs::{Pi1, Pi2, R1CSNIZKProof};
+use crate::r1cs::{Pi1, Pi2, R1CSNARKProof};
 use crate::utils::hadamard_prod;
 use crate::CurveAffineExt;
 use crate::PRNG;
@@ -8,7 +8,7 @@ use ff::{Field, PrimeField, PrimeFieldBits};
 use poseidon_transcript::transcript::PoseidonTranscript;
 use zeroize::DefaultIsZeroes;
 
-pub struct R1CSNIZKProver<C>
+pub struct R1CSNARKProver<C>
 where
     C: CurveAffineExt,
     C::ScalarExt: PrimeFieldBits,
@@ -21,7 +21,7 @@ where
     pub comm_gens: MultiCommitGens<C>,
 }
 
-impl<C> R1CSNIZKProver<C>
+impl<C> R1CSNARKProver<C>
 where
     C: CurveAffineExt,
     C::ScalarExt: PrimeFieldBits,
@@ -47,7 +47,7 @@ where
         &mut self,
         witness: &[C::ScalarExt],
         public_input: &Vec<C::ScalarExt>,
-    ) -> R1CSNIZKProof<C> {
+    ) -> R1CSNARKProof<C> {
         let num_cons = self.r1cs.num_cons;
         let num_vars = self.r1cs.num_vars;
 
@@ -169,7 +169,7 @@ where
 
         // Step 12
 
-        R1CSNIZKProof {
+        R1CSNARKProof {
             public_input: public_input.to_vec(),
             pi_1,
             pi_2,
